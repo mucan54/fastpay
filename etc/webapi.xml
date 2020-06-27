@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../../app/code/Magento/Webapi/etc/webapi.xsd">
     <route url="/V1/fastsop/:id" method="GET">
-        <service class="Kaffe\FastPay\Api\CustomInterface" method="getPost"/>
+        <service class="Magento\Quote\Api\CartItemRepositoryInterface" method="getList"/>
         <resources>
             <resource ref="anonymous"/>
         </resources>

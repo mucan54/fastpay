@@ -1,39 +1,130 @@
 <?php
 namespace Kaffe\FastPay\Model;
+use Magento\Catalog\Api\ProductRepositoryInterface;
+use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Framework\Exception\InputException;
+use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Quote\Api\CartItemRepositoryInterface;
+use Magento\Quote\Api\CartRepositoryInterface;
+use Magento\Quote\Api\Data\CartItemInterfaceFactory;
+use Magento\Quote\Model\Quote\Item\CartItemOptionsProcessor;
+use Magento\Quote\Model\Quote\Item\CartItemProcessorInterface;
 
-
-class Custom {
+/**
+ * Repository for quote item.
+ */
+class Custom implements \Magento\Quote\Api\CartItemRepositoryInterface
+{
+    /**
+     * Quote repository.
+     *
+     * @var CartRepositoryInterface
+     */
+    protected $quoteRepository;
 
     /**
-     * {@inheritdoc}
+     * Product repository.
+     *
+     * @var ProductRepositoryInterface
      */
-    public function getPost($param)
+    protected $productRepository;
+
+    /**
+     * @var CartItemInterfaceFactory
+     */
+    protected $itemDataFactory;
+
+    /**
+     * @var CartItemProcessorInterface[]
+     */
+    protected $cartItemProcessors;
+
+    /**
+     * @var CartItemOptionsProcessor
+     */
+    private $cartItemOptionsProcessor;
+
+    /**
+     * @param CartRepositoryInterface $quoteRepository
+     * @param ProductRepositoryInterface $productRepository
+     * @param CartItemInterfaceFactory $itemDataFactory
+     * @param CartItemOptionsProcessor $cartItemOptionsProcessor
+     * @param CartItemProcessorInterface[] $cartItemProcessors
+     */
+    public function __construct(
+        CartRepositoryInterface $quoteRepository,
+        ProductRepositoryInterface $productRepository,
+        CartItemInterfaceFactory $itemDataFactory,
+        CartItemOptionsProcessor $cartItemOptionsProcessor,
+        array $cartItemProcessors = []
+    )
     {
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $products = $objectManager->create('\Magento\Quote\Model\Quote')->load($param)->getAllVisibleItems();
-        $productRepositoryFactory= $objectManager->create('\Magento\Catalog\Api\ProductRepositoryInterfaceFactory');
-        $array=(object)[];
-        $objectManager =\Magento\Framework\App\ObjectManager::getInstance();
-        $helperImport = $objectManager->get('\Magento\Catalog\Helper\Image');
+        $this->quoteRepository = $quoteRepository;
+        $this->productRepository = $productRepository;
+        $this->itemDataFactory = $itemDataFactory;
+        $this->cartItemOptionsProcessor = $cartItemOptionsProcessor;
+        $this->cartItemProcessors = $cartItemProcessors;
+    }
 
-        $allproducts=[];
-        foreach ($products as $product){
-            $myproduct = $productRepositoryFactory->create()->getById($product->getProductId());
-            $array->image= $helperImport->init($myproduct, 'product_page_image_small')
-                ->setImageFile($myproduct->getImage()) // image,small_image,thumbnail
-                ->resize(380)
-                ->getUrl();
-            $array->sku=$myproduct->getData('sku');
-            $array->qty=$product->getData('qty');
-            $array->price=$product->getData('price');
-            $array->base_price=$product->getData('base_price');
-            $array->discount_percent=$product->getData('discount_percent');
-            $array->discount_amount=$product->getData('discount_amount');
+    /**
+     * @inheritdoc
+     */
+    public function getList($cartId)
+    {
+        $output = [];
+        /** @var  \Magento\Quote\Model\Quote $quote */
+        $quote = $this->quoteRepository->getActive($cartId);
 
-            array_push($allproducts, $array);
+        /** @var  \Magento\Quote\Model\Quote\Item $item */
+        foreach ($quote->getAllVisibleItems() as $item) {
+            $item = $this->cartItemOptionsProcessor->addProductOptions($item->getProductType(), $item);
+            $output[] = $this->cartItemOptionsProcessor->applyCustomOptions($item);
+        }
+        return $output;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function save(\Magento\Quote\Api\Data\CartItemInterface $cartItem)
+    {
+        /** @var \Magento\Quote\Model\Quote $quote */
+        $cartId = $cartItem->getQuoteId();
+        if (!$cartId) {
+            throw new InputException(
+                __('"%fieldName" is required. Enter and try again.', ['fieldName' => 'quoteId'])
+            );
         }
 
+        $quote = $this->quoteRepository->getActive($cartId);
+        $quoteItems = $quote->getItems();
+        $quoteItems[] = $cartItem;
+        $quote->setItems($quoteItems);
+        $this->quoteRepository->save($quote);
+        $quote->collectTotals();
+        return $quote->getLastAddedItem();
+    }
 
-        return \GuzzleHttp\json_encode($allproducts);
+    /**
+     * @inheritdoc
+     */
+    public function deleteById($cartId, $itemId)
+    {
+        /** @var \Magento\Quote\Model\Quote $quote */
+        $quote = $this->quoteRepository->getActive($cartId);
+        $quoteItem = $quote->getItemById($itemId);
+        if (!$quoteItem) {
+            throw new NoSuchEntityException(
+                __('The %1 Cart doesn\'t contain the %2 item.', $cartId, $itemId)
+            );
+        }
+        try {
+            $quote->removeItem($itemId);
+            $this->quoteRepository->save($quote);
+        } catch (\Exception $e) {
+            throw new CouldNotSaveException(__("The item couldn't be removed from the quote."));
+        }
+
+        return true;
     }
 }
