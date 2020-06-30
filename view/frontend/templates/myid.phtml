@@ -2,6 +2,11 @@
 /*
  * @var $block Kaffe/FastShop/Block/GetData
  */
-echo 'YOUR CART ID IS:'.$block->getQuote()->getId();
 
+$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+$conf = $objectManager->get('Magento\Framework\App\Config\ScopeConfigInterface')->getValue('kaffe_software_settings/general/key');
+echo 'YOUR CART ID IS:'.$block->getQuote()->getId();
+$myval='kaffeapp:cartid='.$block->getQuote()->getId().':website_id='.$conf;
 ?>
+<img style="-webkit-user-select:none; display:block; margin:auto; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&amp;data=<?= $myval ?>">
+
