@@ -19,15 +19,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace Kaffe\FastPay\Controller;
-
-use Iyzico\Iyzipay\Controller\IyzicoBase\IyzicoFormObjectGenerator;
-use Iyzico\Iyzipay\Controller\IyzicoBase\IyzicoPkiStringBuilder;
-use Iyzico\Iyzipay\Controller\IyzicoBase\IyzicoRequest;
-use Magento\Customer\Api\Data\GroupInterface;
+namespace Kaffe\FastPay\Controller\Iyzico;
 
 
-class Iyzico extends \Magento\Framework\App\Action\Action 
+class Index extends \Magento\Framework\App\Action\Action 
 {
 	
     protected $_context;
@@ -41,23 +36,13 @@ class Iyzico extends \Magento\Framework\App\Action\Action
     
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
-        \Magento\Framework\Json\EncoderInterface $encoder,
-        \Magento\Framework\View\Result\PageFactory $pageFactory,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\Customer\Model\Session $customerSession,
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \Iyzico\Iyzipay\Model\IyziCardFactory $iyziCardFactory,
-        \Magento\Store\Model\StoreManagerInterface $storeManager
+        \Magento\Customer\Model\Session $customerSession
     ) {
         $this->_context = $context;
-        $this->_pageFactory = $pageFactory;
-		$this->_jsonEncoder = $encoder;
         $this->_checkoutSession = $checkoutSession;
         $this->_customerSession = $customerSession;
-        $this->_scopeConfig = $scopeConfig;
         parent::__construct($context);
-        $this->_iyziCardFactory = $iyziCardFactory;
-        $this->_storeManager = $storeManager;
     }
     
 	/**
@@ -76,17 +61,21 @@ class Iyzico extends \Magento\Framework\App\Action\Action
         $guestEmail = false;
 
         if(isset($postData['token'])){
+            echo 1;
             
             $this->_customerSession->setIyziToken($postData['token']);
         }
         if(isset($postData['iyziQuoteEmail']) && isset($postData['iyziQuoteId'])) {
 
+            echo 2;
+
             $this->_customerSession->setEmail($postData['iyziQuoteEmail']);
             $this->_checkoutSession->setGuestQuoteId($postData['iyziQuoteId']);
             $guestEmail = $postData['iyziQuoteEmail'];
         }
-
-        return;  
+        print_r($postData);
+        die();
+        return true;  
 
     }
 }
