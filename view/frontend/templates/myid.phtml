@@ -10,8 +10,8 @@ $conf = $objectManager->get('Magento\Framework\App\Config\ScopeConfigInterface')
 echo 'YOUR CART ID IS:'.$block->getQuote()->getId();
 //$myval='kaffeapp:cartid='.$block->getQuote()->getId().':website_id='.$conf.':siteurl='.$block->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_WEB,FALSE);
 $myval = 'http://kaffe-panel.herokuapp.com/getsiteQR/'.$conf.'/'.$block->getQuote()->getId();
-//<img style="-webkit-user-select:none; display:block; margin:auto; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&amp;data=<?= $myval ?>">
+//<img style="-webkit-user-select:none; display:block; margin:auto; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&amp;data=$myval">
 
 ?>
-<img style="-webkit-user-select:none; display:block; margin:auto; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);" src="<?= $myval ?>">
+<a href ="http://kaffe-panel.herokuapp.com/getsite/1/{cartId}"><img src="<?= $myval ?>"></a>
 
